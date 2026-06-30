@@ -1,0 +1,66 @@
+[project]
+name = "simple-rag-demo"
+version = "0.1.0"
+description = "Open-domain Spanish RAG demo with measurable retrieval evaluation"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Juan-Francisco Reyes", email = "pacoreyes@protonmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "polars",                    # Data manipulation
+    "pydantic",                  # Data validation
+    "pydantic-settings",         # Configuration from env / .env file
+    "msgspec",                   # Fast JSON serialization
+    "tqdm",                      # Progress bars
+    "spacy>=3.7.0",              # Sentence segmentation (rule-based sentencizer only)
+    "google-genai",              # Gemini API (keyword extraction)
+    "pinecone",                  # Vector database client + inference API
+    "tiktoken",                  # Token counting (cl100k_base)
+    "click>=8.4.2",              # CLI support (required by spaCy)
+]
+
+[project.scripts]
+run-pipeline = "simple_rag.data_pipeline.run:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/simple_rag"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",    # Unit test runner
+    "pytest-asyncio",   # Async test support
+    "pytest-mock",      # Mock / patch fixtures
+    "bandit",           # Security scanning
+    "ruff",             # Linter and formatter
+    "ty",               # Type checker
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]
+
+[tool.ty]
+src = { root = "src" }

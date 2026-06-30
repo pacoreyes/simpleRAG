@@ -32,8 +32,3 @@ experiments/
 # AI Coding assistants
 .gemini/
 .claude/
-
-PROJECT_STATUS.md
-REPORT_MENTION.md
-REPORT_WORK_LOG.md
-TO_LANGGRAPH.md
