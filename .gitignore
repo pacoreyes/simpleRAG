@@ -24,11 +24,11 @@ dist/
 *.egg-info/
 
 data_volume/
-experiments/
-
-# Dagster
-.tmp_*
 
 # AI Coding assistants
 .gemini/
 .claude/
+
+# Planning
+DATA_PIPELINE.md
+LOG.md
