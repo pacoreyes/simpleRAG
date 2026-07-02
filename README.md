@@ -7,7 +7,7 @@ Un demo de Retrieval-Augmented Generation (RAG) construido sobre **[RagQuAS](htt
 - **Router con conciencia de tema** (Gemini 2.5 Flash + thinking) pre-filtra el espacio de búsqueda vectorial por dominio antes de correr la búsqueda semántica, en lugar de depender solo del retrieval denso.
 - **Reordenamiento por diversidad de fuentes** limita los chunks por documento de origen para que ningún documento individual domine los resultados del top-k.
 - **Generación fundamentada con citas** — las respuestas se construyen únicamente a partir de los chunks recuperados, citan sus fuentes, y señalan explícitamente cualquier parte de la pregunta que el contexto no cubra.
-- **Harness de evaluación integrado** — Recall@k, MRR, similitud de respuesta basada en embeddings, y LLM-judge de faithfulness/corrección, conectados a un test suite de `pytest --integration` con umbrales de calidad estrictos.
+- **Harness de evaluación integrado** — Recall@k, MRR, similitud de respuesta basada en embeddings, y LLM-judge de faithfulness, conectados a un test suite de `pytest --integration` con umbrales de calidad estrictos.
 - **Arquitectura en capas limpia** — ingesta (`data_pipeline/`) y consulta (`rag/`) son subsistemas independientes que solo comparten infraestructura genérica. Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **UI de chat en Chainlit**, alineada con el idioma del dataset, español.
 

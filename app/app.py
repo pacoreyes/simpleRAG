@@ -114,23 +114,28 @@ async def on_message(message: cl.Message) -> None:
     else:
         session_summary = None
 
-    seen_links: set[str] = set()
-    unique_sources: list[dict] = []
-    for c in result.chunks:
-        link = c["link"]
-        if link and link in seen_links:
-            continue
-        seen_links.add(link)
-        unique_sources.append(c)
+    # El generador solo agrega la línea "Fuentes:" cuando realmente usó algún
+    # chunk para responder (ver _ANSWER_SYSTEM_PROMPT); si no está presente,
+    # ningún chunk recuperado fue relevante y no corresponde mostrar citas.
+    sources = []
+    if "Fuentes:" in result.answer:
+        seen_links: set[str] = set()
+        unique_sources: list[dict] = []
+        for c in result.chunks:
+            link = c["link"]
+            if link and link in seen_links:
+                continue
+            seen_links.add(link)
+            unique_sources.append(c)
 
-    sources = [
-        cl.Text(
-            name=c["source_domain"] or c["link"] or f"chunk_{i}",
-            content=c["link"] or "(sin enlace)",
-            display="inline",
-        )
-        for i, c in enumerate(unique_sources)
-    ]
+        sources = [
+            cl.Text(
+                name=c["source_domain"] or c["link"] or f"chunk_{i}",
+                content=c["link"] or "(sin enlace)",
+                display="inline",
+            )
+            for i, c in enumerate(unique_sources)
+        ]
 
     await cl.Message(content=result.answer, elements=sources).send()
 

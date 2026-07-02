@@ -131,12 +131,16 @@ async def answer_correctness(
         gold_answer=gold_answer,
         generated_answer=generated_answer,
     )
-    raw = await generate_text_gemini_async(
-        client=client,
-        prompt=prompt,
-        model_name=model,
-        max_tokens=256,
-        temperature=0.0,
-        mime_type="application/json",
-    )
+    try:
+        raw = await generate_text_gemini_async(
+            client=client,
+            prompt=prompt,
+            model_name=model,
+            max_tokens=256,
+            temperature=0.0,
+            mime_type="application/json",
+        )
+    except RuntimeError as e:
+        log.warning("Error de API en correctness: %s", str(e)[:200])
+        return {"score": 0, "reason": "error de API"}
     return parse_judge_response(raw, error_prefix="Correctness")

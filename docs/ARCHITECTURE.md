@@ -234,7 +234,7 @@ simple_rag.utils          →  simple_rag.settings   ✗  NUNCA
             se ha retrasado?"
                     │
                     ▼
-  RouterDecision(
+  RouterDecision(                    ← salida de Gemini (LLM)
       topics       = ["reclamaciones"],
       filter_mode  = "exact",
       query_rewrite= "Cómo hacer un reclamo por retraso de vuelo",
