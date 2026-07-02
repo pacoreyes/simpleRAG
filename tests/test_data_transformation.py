@@ -13,7 +13,7 @@ from simple_rag.utils.llm_helpers import strip_json_fences
 
 
 class _WordTokenizer:
-    """Counts tokens as whitespace-split words — deterministic, no external deps."""
+    """Cuenta tokens como palabras separadas por espacios — determinístico, sin dependencias externas."""
 
     def encode(self, text: str, add_special_tokens: bool = False) -> list[str]:
         return text.split()
@@ -68,7 +68,7 @@ class TestBuildChunks:
         assert chunks[0]["is_last"] is True
 
     def test_last_chunk_bypasses_min_sentences(self, tok):
-        # Only 2 sentences but min_sentences=5 — must still produce one chunk
+        # Solo 2 oraciones pero min_sentences=5 — igual debe producir un chunk
         sentences = ["Una.", "Dos."]
         chunks = build_chunks(sentences, tok, target_tokens=500, overlap_sentences=1, min_sentences=5)
         assert len(chunks) == 1
@@ -106,7 +106,7 @@ class TestBuildChunks:
     def test_uses_settings_defaults(self, tok):
         from simple_rag.settings import settings
         sentences = ["Una oración.", "Segunda oración.", "Tercera."]
-        # Calling without explicit params uses settings values — must not raise
+        # Llamar sin parámetros explícitos usa los valores de settings — no debe lanzar excepción
         chunks = build_chunks(sentences, tok)
         assert isinstance(chunks, list)
 

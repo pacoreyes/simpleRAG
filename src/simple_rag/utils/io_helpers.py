@@ -1,6 +1,5 @@
 # -----------------------------------------------------------
-# I/O and Serialization Helpers
-# simple_rag — shared utilities
+# Simple RAG Demo - I/O and Serialization Helpers
 #
 # (C) 2026 Juan-Francisco Reyes, Essen, Germany
 # Released under MIT License
@@ -20,13 +19,13 @@ JSONDecodeError = msgspec.DecodeError
 
 async def async_read_json_file(path: Path) -> Optional[Any]:
     """
-    Reads and decodes a JSON file asynchronously using msgspec.
+    Lee y decodifica un archivo JSON de forma asíncrona usando msgspec.
 
     Args:
-        path: Path to the JSON file.
+        path: Ruta al archivo JSON.
 
     Returns:
-        The decoded data, or None if the file does not exist or decoding fails.
+        Los datos decodificados, o None si el archivo no existe o falla la decodificación.
     """
     if not await asyncio.to_thread(path.exists):
         return None
@@ -35,7 +34,7 @@ async def async_read_json_file(path: Path) -> Optional[Any]:
         def read_bytes():
             with open(path, "rb") as f:
                 return f.read()
-        
+
         data = await asyncio.to_thread(read_bytes)
         return msgspec.json.decode(data)
     except (OSError, msgspec.DecodeError):
@@ -44,13 +43,13 @@ async def async_read_json_file(path: Path) -> Optional[Any]:
 
 async def async_write_json_file(path: Path, data: Any) -> None:
     """
-    Encodes and writes data to a JSON file asynchronously using msgspec.
+    Codifica y escribe datos en un archivo JSON de forma asíncrona usando msgspec.
 
-    Ensures parent directories exist.
+    Asegura que los directorios padre existan.
 
     Args:
-        path: Path to the JSON file to write.
-        data: Data to be JSON-encoded and written.
+        path: Ruta del archivo JSON a escribir.
+        data: Datos a codificar en JSON y escribir.
     """
     await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
 
@@ -63,13 +62,13 @@ async def async_write_json_file(path: Path, data: Any) -> None:
 
 async def async_read_text_file(path: Path) -> Optional[str]:
     """
-    Reads a text file asynchronously.
+    Lee un archivo de texto de forma asíncrona.
 
     Args:
-        path: Path to the text file.
+        path: Ruta al archivo de texto.
 
     Returns:
-        The file content as a string, or None if the file does not exist or on error.
+        El contenido del archivo como string, o None si el archivo no existe o hay un error.
     """
     if not await asyncio.to_thread(path.exists):
         return None
@@ -78,7 +77,7 @@ async def async_read_text_file(path: Path) -> Optional[str]:
         def read_text():
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
-        
+
         return await asyncio.to_thread(read_text)
     except OSError:
         return None
@@ -86,13 +85,13 @@ async def async_read_text_file(path: Path) -> Optional[str]:
 
 async def async_write_text_file(path: Path, content: str) -> None:
     """
-    Writes content to a text file asynchronously.
+    Escribe contenido en un archivo de texto de forma asíncrona.
 
-    Ensures parent directories exist.
+    Asegura que los directorios padre existan.
 
     Args:
-        path: Path to the text file to write.
-        content: String content to write.
+        path: Ruta del archivo de texto a escribir.
+        content: Contenido en string a escribir.
     """
     await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
 
@@ -105,26 +104,26 @@ async def async_write_text_file(path: Path, content: str) -> None:
 
 def generate_cache_key(text: str) -> str:
     """
-    Creates a SHA256 hash of a string to use as a cache key.
+    Crea un hash SHA256 de un string para usar como clave de caché.
 
     Args:
-        text: Input string to hash.
+        text: String de entrada a hashear.
 
     Returns:
-        SHA256 hex digest.
+        Hex digest del SHA256.
     """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def extract_url_domain(url: str | None) -> str | None:
-    """Extracts the network location (domain) from a URL.
+    """Extrae el network location (dominio) de una URL.
 
     Args:
-        url: Full URL string, or None / empty string.
+        url: String de URL completa, o None / string vacío.
 
     Returns:
-        The netloc component (e.g. ``"airhelp.com"``), or None if the URL
-        is absent, empty, or has no parseable host.
+        El componente netloc (p. ej. ``"airhelp.com"``), o None si la URL
+        está ausente, vacía, o no tiene un host parseable.
     """
     if not url:
         return None
@@ -133,12 +132,12 @@ def extract_url_domain(url: str | None) -> str | None:
 
 def decode_json(data: bytes) -> Any:
     """
-    Decodes JSON bytes using msgspec.
+    Decodifica bytes JSON usando msgspec.
 
     Args:
-        data: JSON bytes to decode.
+        data: Bytes JSON a decodificar.
 
     Returns:
-        The decoded data.
+        Los datos decodificados.
     """
     return msgspec.json.decode(data)

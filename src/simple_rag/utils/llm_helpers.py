@@ -1,6 +1,5 @@
 # -----------------------------------------------------------
-# LLM and Tokenizer Helpers
-# simple_rag — shared utilities
+# Simple RAG Demo - LLM and NLP Helpers
 #
 # (C) 2026 Juan-Francisco Reyes, Essen, Germany
 # Released under MIT License
@@ -8,10 +7,10 @@
 # -----------------------------------------------------------
 
 """
-Generic LLM inference helpers using Google Gemini (new SDK) and Tiktoken.
+Helpers genéricos de inferencia LLM usando Google Gemini (SDK nuevo) y Tiktoken.
 
-Covers: tokenization, Gemini client setup, synchronous and asynchronous
-text generation, and LLM output parsing. No domain-specific logic.
+Cubre: tokenización, configuración del cliente de Gemini, generación de texto
+síncrona y asíncrona, y parsing de la salida del LLM. Sin lógica de dominio.
 """
 
 import re
@@ -23,45 +22,45 @@ from google.genai import types
 
 
 class TiktokenTokenizer:
-    """Wrapper to make tiktoken compatible with the transformers tokenizer interface."""
+    """Wrapper para hacer que tiktoken sea compatible con la interfaz de tokenizer de transformers."""
 
     def __init__(self, encoding_name: str = "cl100k_base"):
         self.encoding = tiktoken.get_encoding(encoding_name)
 
     def encode(self, text: str, add_special_tokens: bool = False) -> list[int]:
-        """Encodes text into tokens, ignoring extra arguments for compatibility."""
+        """Codifica texto en tokens, ignorando argumentos extra por compatibilidad."""
         return self.encoding.encode(text)
 
 
 def load_tokenizer_only(encoding_name: str = "cl100k_base") -> TiktokenTokenizer:
     """
-    Loads the Tiktoken tokenizer.
+    Carga el tokenizer de Tiktoken.
 
     Args:
-        encoding_name: Tiktoken encoding name (e.g., "cl100k_base").
+        encoding_name: Nombre del encoding de Tiktoken (p. ej., "cl100k_base").
 
     Returns:
-        The TiktokenTokenizer instance.
+        La instancia de TiktokenTokenizer.
     """
     return TiktokenTokenizer(encoding_name)
 
 
 # ---------------------------------------------------------------------------
-# Gemini Helpers (using new google-genai SDK)
+# Helpers de Gemini (usando el nuevo SDK google-genai)
 # ---------------------------------------------------------------------------
 
 def get_gemini_client(api_key: str) -> genai.Client:
     """
-    Returns a configured Google Gemini client.
+    Devuelve un cliente de Google Gemini configurado.
 
     Args:
-        api_key: Google Gemini API key.
+        api_key: Clave de API de Google Gemini.
 
     Returns:
-        A genai.Client instance.
+        Una instancia de genai.Client.
     """
     if not api_key:
-        raise ValueError("Gemini API key is required.")
+        raise ValueError("Se requiere una clave de API de Gemini.")
     return genai.Client(api_key=api_key)
 
 
@@ -73,28 +72,36 @@ def generate_text_gemini(
     temperature: float = 0.0,
     mime_type: Optional[str] = None,
     response_schema: Optional[Any] = None,
+    thinking_budget: Optional[int] = None,
 ) -> str:
     """
-    Generates text using Google Gemini API (new SDK).
+    Genera texto usando la API de Google Gemini (SDK nuevo).
 
     Args:
-        client: Configured Gemini client.
-        prompt: The input prompt.
-        model_name: Gemini model name (default: "gemini-2.0-flash").
-        max_tokens: Max output tokens.
-        temperature: Sampling temperature.
-        mime_type: Optional response MIME type (e.g., "application/json").
-        response_schema: Optional response schema (Pydantic model or dict).
+        client: Cliente de Gemini configurado.
+        prompt: El prompt de entrada.
+        model_name: Nombre del modelo de Gemini (default: "gemini-2.0-flash").
+        max_tokens: Máximo de tokens de salida.
+        temperature: Temperatura de sampling.
+        mime_type: Tipo MIME de respuesta opcional (p. ej., "application/json").
+        response_schema: Schema de respuesta opcional (modelo Pydantic o dict).
+        thinking_budget: Budget de tokens de "thinking" de Gemini, opcional; se
+            omite de la request cuando es None.
 
     Returns:
-        Generated text content.
+        Contenido de texto generado.
     """
     config = types.GenerateContentConfig(
         temperature=temperature,
         max_output_tokens=max_tokens,
         response_mime_type=mime_type,
         response_schema=response_schema,
-        # Disable safety filters for extraction tasks on public data
+        thinking_config=(
+            types.ThinkingConfig(thinking_budget=thinking_budget)
+            if thinking_budget is not None
+            else None
+        ),
+        # Deshabilita los filtros de seguridad para tareas de extracción sobre datos públicos
         safety_settings=[
             types.SafetySetting(
                 category="HARM_CATEGORY_HARASSMENT",
@@ -123,7 +130,7 @@ def generate_text_gemini(
         )
         return response.text
     except Exception as e:
-        raise RuntimeError(f"Gemini generation failed: {e}") from e
+        raise RuntimeError(f"Falló la generación con Gemini: {e}") from e
 
 
 async def generate_text_gemini_async(
@@ -134,30 +141,40 @@ async def generate_text_gemini_async(
     temperature: float = 0.0,
     mime_type: Optional[str] = None,
     response_schema: Optional[Any] = None,
+    thinking_budget: Optional[int] = None,
+    retry_count: int = 8,
+    backoff_factor: float = 2.0,
 ) -> str:
-    """Generates text using Google Gemini API asynchronously (native async).
+    """Genera texto usando la API de Google Gemini de forma asíncrona (async nativo).
 
-    Uses ``client.aio.models.generate_content`` so the call is non-blocking
-    without requiring ``asyncio.to_thread``.
+    Usa ``client.aio.models.generate_content`` para que la llamada sea no
+    bloqueante sin necesidad de ``asyncio.to_thread``.
 
     Args:
-        client: Configured Gemini client (same instance returned by
+        client: Cliente de Gemini configurado (misma instancia devuelta por
             ``get_gemini_client``).
-        prompt: The input prompt.
-        model_name: Gemini model name (default: "gemini-2.0-flash").
-        max_tokens: Max output tokens.
-        temperature: Sampling temperature.
-        mime_type: Optional response MIME type (e.g., "application/json").
-        response_schema: Optional response schema (Pydantic model or dict).
+        prompt: El prompt de entrada.
+        model_name: Nombre del modelo de Gemini (default: "gemini-2.0-flash").
+        max_tokens: Máximo de tokens de salida.
+        temperature: Temperatura de sampling.
+        mime_type: Tipo MIME de respuesta opcional (p. ej., "application/json").
+        response_schema: Schema de respuesta opcional (modelo Pydantic o dict).
+        thinking_budget: Budget de tokens de "thinking" de Gemini, opcional; se
+            omite de la request cuando es None.
 
     Returns:
-        Generated text content.
+        Contenido de texto generado.
     """
     config = types.GenerateContentConfig(
         temperature=temperature,
         max_output_tokens=max_tokens,
         response_mime_type=mime_type,
         response_schema=response_schema,
+        thinking_config=(
+            types.ThinkingConfig(thinking_budget=thinking_budget)
+            if thinking_budget is not None
+            else None
+        ),
         safety_settings=[
             types.SafetySetting(
                 category="HARM_CATEGORY_HARASSMENT",
@@ -178,49 +195,76 @@ async def generate_text_gemini_async(
         ]
     )
 
-    try:
-        response = await client.aio.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=config
-        )
-        if response.text is None:
-            raise RuntimeError("Gemini returned empty response (possibly filtered).")
-        return response.text
-    except Exception as e:
-        raise RuntimeError(f"Gemini generation failed: {e}") from e
+    import asyncio as _asyncio
 
-
-def get_device() -> "torch.device":
-    """
-    Detects the best available compute device.
-
-    Returns:
-        torch.device: CUDA if available, MPS for Apple Silicon, otherwise CPU.
-    """
-    import torch
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
+    for attempt in range(retry_count):
+        try:
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config,
+            )
+            if response.text is None:
+                raise RuntimeError("Gemini devolvió una respuesta vacía (posiblemente filtrada).")
+            return response.text
+        except Exception as e:
+            err = str(e)
+            is_retryable = any(code in err for code in ("503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
+            if is_retryable and attempt < retry_count - 1:
+                wait = min((backoff_factor ** attempt) * 3.0, 120.0)
+                await _asyncio.sleep(wait)
+                continue
+            raise RuntimeError(f"Falló la generación con Gemini: {e}") from e
+    raise RuntimeError("Falló la generación con Gemini: se superó el máximo de reintentos")
 
 
 def strip_json_fences(text: str) -> str:
     """
-    Removes markdown code fences from LLM output and extracts the outermost JSON content.
+    Elimina fences de código markdown de la salida del LLM y extrae el primer valor JSON.
+
+    Escanea el primer bloque balanceado ``{...}`` o ``[...]``, llevando la
+    cuenta de la profundidad de anidación y saltando caracteres tipo brace
+    dentro de literales de string. Esto se detiene al final del primer valor
+    JSON completo en lugar de abarcar de forma greedy hasta el último brace
+    del texto, así que no se traga contenido siguiente cuando un modelo emite
+    más de un objeto JSON en una sola respuesta.
 
     Args:
-        text: Raw LLM response that may be wrapped in ```json ... ``` fences.
+        text: Respuesta cruda del LLM que puede venir envuelta en fences ```json ... ```.
 
     Returns:
-        Clean JSON string.
+        String JSON limpio.
     """
     text = text.strip()
     fence_match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
     if fence_match:
         text = fence_match.group(1).strip()
-    brace_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-    if brace_match:
-        return brace_match.group(1).strip()
-    return text.strip()
+
+    start = next((i for i, ch in enumerate(text) if ch in "{["), None)
+    if start is None:
+        return text
+
+    open_ch = text[start]
+    close_ch = "}" if open_ch == "{" else "]"
+    depth = 0
+    in_string = False
+    escaped = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1].strip()
+    return text[start:].strip()

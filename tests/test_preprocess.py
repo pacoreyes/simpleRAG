@@ -21,7 +21,7 @@ def tok():
 
 
 def _row(**kwargs) -> SourceRow:
-    """Build a minimal SourceRow; override any field via kwargs."""
+    """Construye un SourceRow mínimo; sobrescribe cualquier campo vía kwargs."""
     defaults = {
         "topic": "seguros",
         "answer": "Respuesta de prueba.",
@@ -150,8 +150,8 @@ class TestExplodeAndDeduplicate:
     def test_full_dataset_dedup_reduces_count(self):
         rows = load_dataset(SOURCE_PARQUET)
         docs = explode_and_deduplicate(rows)
-        # 201 source rows × up to 5 slots = up to 1005 pre-dedup records;
-        # deduplication must reduce this to fewer unique docs
+        # 201 filas de origen × hasta 5 slots = hasta 1005 registros antes de dedup;
+        # la deduplicación debe reducir esto a menos documentos únicos
         assert len(docs) < 201 * 5
 
 

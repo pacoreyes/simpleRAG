@@ -14,29 +14,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # ==============================================================================
-    #  CORE PATHS
+    #  RUTAS PRINCIPALES
     # ==============================================================================
 
-    # The 'app' directory, which is the root for Python imports
+    # El directorio 'app', que es la raíz para las importaciones de Python
     APP_DIR: Path = Path(__file__).resolve().parent
-    # For accessing top-level project resources (Repo Root)
+    # Para acceder a los recursos de nivel superior del proyecto (raíz del repositorio)
     PROJECT_DIR: Path = APP_DIR.parent.parent
 
     # ==============================================================================
-    #  LOCAL DATA PATHS
+    #  RUTAS DE DATOS LOCALES
     # ==============================================================================
 
-    # Top-level directory for all data, caches, temp, databases, and datasets
+    # Directorio de nivel superior para todos los datos, cachés, archivos temporales,
+    # bases de datos y datasets
     DATA_DIR: Path = PROJECT_DIR / "data_volume"
 
     ASSETS_DIRPATH: Path = Field(default_factory=lambda: Path(".."), init=False)
     CHUNKS_CACHE_DIRPATH: Path = Field(default_factory=lambda: Path(".."), init=False)
 
     # ==============================================================================
-    #  VECTOR DATABASE SETTINGS
+    #  CONFIGURACIÓN DE BASE DE DATOS VECTORIAL
     # ==============================================================================
 
-    # Pinecone Inference Embeddings (multilingual, used via pc.inference.embed)
+    # Embeddings de Pinecone Inference (multilingüe, usado vía pc.inference.embed)
     DEFAULT_EMBEDDINGS_MODEL_NAME: str = "multilingual-e5-large"
     DEFAULT_EMBEDDING_DIMENSIONS: int = 1024
 
@@ -46,10 +47,10 @@ class Settings(BaseSettings):
     PINECONE_INFERENCE_DELAY_SECONDS: float = 2.0
 
     # ==============================================================================
-    #  TEXT PROCESSING / RAG SETTINGS
+    #  PROCESAMIENTO DE TEXTO / CONFIGURACIÓN RAG
     # ==============================================================================
-    # Language
-    SPACY_LANGUAGE: str = "es"   # BCP-47 language code for spaCy tokenizer
+    # Idioma
+    SPACY_LANGUAGE: str = "es"   # Código de idioma BCP-47 para el tokenizer de spaCy
 
     # Chunking
     CHUNK_TARGET_TOKENS: int = 300
@@ -60,25 +61,31 @@ class Settings(BaseSettings):
     LLM_RETRY_COUNT: int = 5
     LLM_RETRY_BACKOFF_FACTOR: float = 2.0
     GEMINI_MODEL: str = "models/gemini-2.5-flash-lite"
+    ROUTER_MODEL: str = "models/gemini-2.5-flash"
+    ROUTER_THINKING_BUDGET: int = 1024
+    ROUTER_CONFIDENCE_THRESHOLD: float = 0.6
+    RAG_TOP_K: int = 5
+    RAG_CANDIDATE_POOL_SIZE: int = 15  # chunks obtenidos de Pinecone antes de aplicar el límite de diversidad
+    RAG_MAX_CHUNKS_PER_DOC: int = 2    # máximo de chunks por doc_id tras el reordenamiento por diversidad de fuentes
 
     # ==============================================================================
-    #  AUTO-CREATION DIRS
+    #  DIRECTORIOS DE CREACIÓN AUTOMÁTICA
     # ==============================================================================
     @model_validator(mode='after')
     def _compute_and_create_paths(self) -> "Settings":
         """
-        Computes derived paths and creates necessary directories.
+        Calcula las rutas derivadas y crea los directorios necesarios.
 
-        Also constructs the User-Agent string and default headers.
+        También construye la cadena User-Agent y los headers por defecto.
 
         Returns:
-            The Settings instance (self).
+            La instancia de Settings (self).
         """
-        # Assign directory values
+        # Asigna los valores de directorio
         self.ASSETS_DIRPATH = self.DATA_DIR / "assets"
         self.CHUNKS_CACHE_DIRPATH = self.DATA_DIR / ".cache" / "chunks"
 
-        # Create directories if they don't exist
+        # Crea los directorios si no existen
         dirs_to_create = [
             self.CHUNKS_CACHE_DIRPATH,
         ]
@@ -88,13 +95,13 @@ class Settings(BaseSettings):
         return self
 
     # ==============================================================================
-    #  API KEYS (read from .env)
+    #  CLAVES DE API (leídas desde .env)
     # ==============================================================================
     GEMINI_API_KEY: str = ""
     PINECONE_API_KEY: str = ""
 
     # ==============================================================================
-    #  ENVIRONMENT VARIABLES
+    #  VARIABLES DE ENTORNO
     # ==============================================================================
     model_config = SettingsConfigDict(
         env_file=".env",

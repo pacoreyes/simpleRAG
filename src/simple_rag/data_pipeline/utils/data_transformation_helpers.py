@@ -1,6 +1,6 @@
 # -----------------------------------------------------------
 # Data Transformation Helpers
-# simple_rag — data_pipeline specific utilities
+# Simple RAG — Data Pipeline Utilities
 #
 # (C) 2026 Juan-Francisco Reyes, Essen, Germany
 # Released under MIT License
@@ -19,12 +19,12 @@ from simple_rag.models import ChunkRecord, DocumentRecord, SourceRow
 from simple_rag.settings import settings
 from simple_rag.utils.io_helpers import extract_url_domain, generate_cache_key
 
-# Global model instance (lazy loaded)
+# Instancia global del modelo (carga diferida)
 _nlp: Optional[Language] = None
 
 
 def _get_nlp_model() -> Language:
-    """Lazy-loads a blank spaCy model with rule-based sentencizer for Spanish."""
+    """Carga de forma diferida un modelo spaCy en blanco con sentencizer basado en reglas para español."""
     global _nlp
     if _nlp is None:
         _nlp = spacy.blank(settings.SPACY_LANGUAGE)
@@ -34,17 +34,18 @@ def _get_nlp_model() -> Language:
 
 def split_sentences(text: str) -> list[str]:
     """
-    Splits text into sentences using newline pre-splitting and spaCy's sentencizer.
+    Divide el texto en oraciones usando pre-división por saltos de línea y el sentencizer de spaCy.
 
-    First splits on newlines (to handle list-style content like discographies),
-    then applies spaCy's rule-based sentencizer to each paragraph for further
-    sentence boundary detection within prose.
+    Primero divide por saltos de línea (para manejar contenido tipo lista,
+    como discografías), y luego aplica el sentencizer basado en reglas de
+    spaCy a cada párrafo para una detección más fina de límites de oración
+    dentro de la prosa.
 
     Args:
-        text: Input text.
+        text: Texto de entrada.
 
     Returns:
-        List of sentences.
+        Lista de oraciones.
     """
     nlp = _get_nlp_model()
     sentences = []
@@ -61,7 +62,7 @@ def split_sentences(text: str) -> list[str]:
 
 
 def count_tokens(text: str, tokenizer: Any) -> int:
-    """Counts tokens in text using the provided tokenizer."""
+    """Cuenta los tokens en el texto usando el tokenizer provisto."""
     return len(tokenizer.encode(text, add_special_tokens=False))
 
 
@@ -73,22 +74,22 @@ def build_chunks(
     min_sentences: int = settings.CHUNK_MIN_SENTENCES,
 ) -> list[dict[str, Any]]:
     """
-    Groups sentences into overlapping chunks of approximately target_tokens.
+    Agrupa oraciones en chunks superpuestos de aproximadamente target_tokens.
 
     Args:
-        sentences: List of sentences from split_sentences().
-        tokenizer: Model tokenizer for token counting.
-        target_tokens: Target number of tokens per chunk core.
-        overlap_sentences: Number of sentences to overlap between chunks.
-        min_sentences: Minimum sentences for a valid chunk (skip if less).
+        sentences: Lista de oraciones de split_sentences().
+        tokenizer: Tokenizer del modelo para el conteo de tokens.
+        target_tokens: Cantidad objetivo de tokens por núcleo de chunk.
+        overlap_sentences: Cantidad de oraciones a superponer entre chunks.
+        min_sentences: Mínimo de oraciones para un chunk válido (se omite si hay menos).
 
     Returns:
-        List of chunk dicts with:
-          - 'sentences': list of sentence strings
-          - 'start_idx': index of first sentence in original list
-          - 'end_idx': index of last sentence (exclusive)
-          - 'is_last': whether this is the last chunk
-          - 'token_count': number of tokens in the chunk
+        Lista de dicts de chunk con:
+          - 'sentences': lista de strings de oraciones
+          - 'start_idx': índice de la primera oración en la lista original
+          - 'end_idx': índice de la última oración (exclusivo)
+          - 'is_last': si este es el último chunk
+          - 'token_count': cantidad de tokens en el chunk
     """
     if not sentences:
         return []
@@ -97,13 +98,13 @@ def build_chunks(
     current_idx = 0
 
     while current_idx < len(sentences):
-        # Start with overlap from previous chunk (if not first chunk)
+        # Empieza con el overlap del chunk anterior (si no es el primer chunk)
         if current_idx > 0:
             start_idx = max(0, current_idx - overlap_sentences)
         else:
             start_idx = 0
 
-        # Accumulate sentences until we reach target tokens
+        # Acumula oraciones hasta alcanzar el target de tokens
         chunk_sentences = []
         token_count = 0
         end_idx = start_idx
@@ -112,14 +113,14 @@ def build_chunks(
             sentence = sentences[i]
             sentence_tokens = count_tokens(sentence, tokenizer)
 
-            # Always include overlap sentences
+            # Siempre incluye las oraciones de overlap
             if i < current_idx:
                 chunk_sentences.append(sentence)
                 token_count += sentence_tokens
                 end_idx = i + 1
                 continue
 
-            # Check if adding this sentence exceeds target
+            # Verifica si agregar esta oración supera el target
             if token_count + sentence_tokens > target_tokens and i > current_idx:
                 break
 
@@ -127,12 +128,12 @@ def build_chunks(
             token_count += sentence_tokens
             end_idx = i + 1
 
-        # Determine if this is the last chunk
+        # Determina si este es el último chunk
         is_last = end_idx >= len(sentences)
 
-        # Skip chunks that are too small (unless it's the last chunk)
+        # Omite chunks demasiado pequeños (a menos que sea el último chunk)
         if len(chunk_sentences) < min_sentences and not is_last:
-            # Move forward and try again
+            # Avanza y vuelve a intentar
             current_idx = end_idx
             continue
 
@@ -144,11 +145,11 @@ def build_chunks(
             'token_count': token_count,
         })
 
-        # Move current index forward (skip overlap area for next chunk)
+        # Avanza el índice actual (salta el área de overlap para el siguiente chunk)
         if is_last:
             break
 
-        # Next chunk starts after current content (minus overlap)
+        # El siguiente chunk empieza después del contenido actual (menos el overlap)
         current_idx = end_idx
 
     return chunks
@@ -156,10 +157,10 @@ def build_chunks(
 
 def prepare_chunks_for_extraction(chunks: list[dict[str, Any]]) -> list[str]:
     """
-    Converts chunk dicts into plain text strings for embedding or LLM extraction.
+    Convierte dicts de chunk en strings de texto plano para embedding o extracción con LLM.
 
-    Returns the full text of each chunk (including overlap sentences) to
-    preserve context in the storage layer.
+    Devuelve el texto completo de cada chunk (incluyendo las oraciones de
+    overlap) para preservar el contexto en la capa de almacenamiento.
     """
     return [
         text
@@ -175,24 +176,24 @@ def chunk_text(
     overlap_sentences: int = settings.CHUNK_OVERLAP_SENTENCES,
 ) -> list[str]:
     """
-    Main chunking function: splits text into extraction-ready chunks.
+    Función principal de chunking: divide el texto en chunks listos para extracción.
 
     Args:
-        text: The full input text.
-        tokenizer: The model's tokenizer.
-        target_tokens: Target tokens per chunk.
-        overlap_sentences: Sentence overlap for context.
+        text: El texto completo de entrada.
+        tokenizer: El tokenizer del modelo.
+        target_tokens: Tokens objetivo por chunk.
+        overlap_sentences: Overlap de oraciones para dar contexto.
 
     Returns:
-        List of text chunks ready for LLM extraction.
+        Lista de chunks de texto listos para extracción con LLM.
     """
-    # Step 1: Split into sentences
+    # Paso 1: Dividir en oraciones
     sentences = split_sentences(text)
 
     if not sentences:
         return []
 
-    # Step 2: Build overlapping chunks
+    # Paso 2: Construir chunks superpuestos
     chunks = build_chunks(
         sentences,
         tokenizer,
@@ -200,7 +201,7 @@ def chunk_text(
         overlap_sentences=overlap_sentences,
     )
 
-    # Step 3: Join each chunk's sentences into a plain text string
+    # Paso 3: Unir las oraciones de cada chunk en un string de texto plano
     extraction_texts = prepare_chunks_for_extraction(chunks)
 
     return extraction_texts
@@ -213,7 +214,7 @@ def deduplicate_by_priority(
     descending: bool = False,
 ) -> pl.LazyFrame:
     """
-    Deduplicates a DataFrame/LazyFrame based on priority (sort order).
+    Deduplica un DataFrame/LazyFrame según una prioridad (orden de sort).
     """
     if isinstance(df, pl.DataFrame):
         lf = df.lazy()
@@ -229,25 +230,25 @@ def deduplicate_by_priority(
 
 
 def normalize_and_clean_text(text: Optional[str]) -> Optional[str]:
-    """Strips leading/trailing whitespace; returns None for empty or None input."""
+    """Elimina espacios al inicio/final; devuelve None si la entrada está vacía o es None."""
     if not text:
         return None
     return text.strip()
 
 
 # ---------------------------------------------------------------------------
-# Pipeline step functions (used by data_pipeline/run.py)
+# Funciones de los pasos del pipeline (usadas por data_pipeline/run.py)
 # ---------------------------------------------------------------------------
 
 def load_dataset(path: Path, limit: int | None = None) -> list[SourceRow]:
-    """Reads the RagQuAS Parquet file into a list of SourceRow objects.
+    """Lee el archivo Parquet de RagQuAS en una lista de objetos SourceRow.
 
     Args:
-        path: Path to the source Parquet file.
-        limit: If set, read only the first N rows (for testing).
+        path: Ruta al archivo Parquet de origen.
+        limit: Si se especifica, lee solo las primeras N filas (para pruebas).
 
     Returns:
-        List of SourceRow instances.
+        Lista de instancias de SourceRow.
     """
     df = pl.read_parquet(path)
     if limit is not None:
@@ -256,20 +257,20 @@ def load_dataset(path: Path, limit: int | None = None) -> list[SourceRow]:
 
 
 def explode_and_deduplicate(rows: list[SourceRow]) -> list[DocumentRecord]:
-    """Explodes text slots and deduplicates by doc_id.
+    """Aplica explode a los slots de texto y deduplica por doc_id.
 
-    Each SourceRow can reference up to five source texts (text_1..text_5).
-    This function:
-      1. Emits one flat record per non-empty (text_i, link_i) slot.
-      2. Uses SHA256 of text as a stable doc_id.
-      3. Deduplicates by doc_id, keeping metadata from the earliest variant
-         occurrence (question_1 sorts before question_2, etc.).
+    Cada SourceRow puede referenciar hasta cinco textos de origen
+    (text_1..text_5). Esta función:
+      1. Emite un registro plano por cada slot (text_i, link_i) no vacío.
+      2. Usa el SHA256 del texto como doc_id estable.
+      3. Deduplica por doc_id, conservando la metadata de la ocurrencia de
+         variante más temprana (question_1 ordena antes que question_2, etc.).
 
     Args:
-        rows: List of SourceRow objects from load_dataset().
+        rows: Lista de objetos SourceRow de load_dataset().
 
     Returns:
-        List of DocumentRecord objects — one per unique source text.
+        Lista de objetos DocumentRecord — uno por cada texto de origen único.
     """
     if not rows:
         return []
@@ -313,16 +314,17 @@ def explode_and_deduplicate(rows: list[SourceRow]) -> list[DocumentRecord]:
 
 
 def chunk_documents(docs: list[DocumentRecord], tokenizer: Any) -> list[ChunkRecord]:
-    """Splits each DocumentRecord into ChunkRecord objects.
+    """Divide cada DocumentRecord en objetos ChunkRecord.
 
-    Uses chunk_text() so chunking parameters are read from settings.
+    Usa chunk_text() para que los parámetros de chunking se lean desde settings.
 
     Args:
-        docs: List of DocumentRecord objects from explode_and_deduplicate().
-        tokenizer: TiktokenTokenizer instance (loaded once by the caller).
+        docs: Lista de objetos DocumentRecord de explode_and_deduplicate().
+        tokenizer: Instancia de TiktokenTokenizer (cargada una vez por quien llama).
 
     Returns:
-        List of ChunkRecord objects in doc order, chunk order within each doc.
+        Lista de objetos ChunkRecord en orden de documento, y orden de chunk
+        dentro de cada documento.
     """
     chunks: list[ChunkRecord] = []
     for doc in docs:
@@ -343,23 +345,23 @@ def chunk_documents(docs: list[DocumentRecord], tokenizer: Any) -> list[ChunkRec
 
 
 def save_chunks_parquet(chunks: list[ChunkRecord], path: Path) -> None:
-    """Saves a list of ChunkRecord objects to a Parquet file.
+    """Guarda una lista de objetos ChunkRecord en un archivo Parquet.
 
     Args:
-        chunks: List of ChunkRecord objects from chunk_documents().
-        path: Destination Parquet path (parent dirs created if needed).
+        chunks: Lista de objetos ChunkRecord de chunk_documents().
+        path: Ruta de destino del Parquet (se crean los directorios padre si hace falta).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     pl.DataFrame([c.model_dump() for c in chunks]).write_parquet(path)
 
 
 def load_chunks_parquet(path: Path) -> list[ChunkRecord]:
-    """Loads ChunkRecord objects from a Parquet file written by save_chunks_parquet.
+    """Carga objetos ChunkRecord desde un archivo Parquet escrito por save_chunks_parquet.
 
     Args:
-        path: Path to the Parquet file.
+        path: Ruta al archivo Parquet.
 
     Returns:
-        List of ChunkRecord instances.
+        Lista de instancias de ChunkRecord.
     """
     return [ChunkRecord.model_validate(row) for row in pl.read_parquet(path).to_dicts()]

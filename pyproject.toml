@@ -1,7 +1,7 @@
 [project]
 name = "simple-rag-demo"
 version = "0.1.0"
-description = "Open-domain Spanish RAG demo with measurable retrieval evaluation"
+description = "Simple RAG demo con agentic router y dataset RagQuAS"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
@@ -19,6 +19,7 @@ dependencies = [
     "pinecone",                  # Vector database client + inference API
     "tiktoken",                  # Token counting (cl100k_base)
     "click>=8.4.2",              # CLI support (required by spaCy)
+    "chainlit>=2.11.1",          # Chat UI for the RAG system
 ]
 
 [project.scripts]
@@ -38,13 +39,14 @@ dev = [
     "pytest-mock",      # Mock / patch fixtures
     "bandit",           # Security scanning
     "ruff",             # Linter and formatter
-    "ty",               # Type checker
+    "ty==0.0.055",      # Type checker
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "module"
 
 [tool.ruff]
 line-length = 100

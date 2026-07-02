@@ -1,6 +1,5 @@
 # -----------------------------------------------------------
-# Generic Text and String Helpers
-# simple_rag — shared utilities
+# Simple RAG Demo - Generic Text and String Helpers
 #
 # (C) 2026 Juan-Francisco Reyes, Essen, Germany
 # Released under MIT License
@@ -12,13 +11,13 @@ from typing import Any, Optional, Sequence
 
 def format_list_natural_language(items: Optional[Sequence[Any]]) -> str:
     """
-    Formats a sequence into a natural-language string with Oxford comma.
+    Formatea una secuencia como string en lenguaje natural con coma de Oxford.
 
     Args:
-        items: Sequence of items to format.
+        items: Secuencia de elementos a formatear.
 
     Returns:
-        Human-readable string, e.g. "a, b, and c".
+        String legible para humanos, p. ej. "a, b, and c".
     """
     if not items:
         return ""

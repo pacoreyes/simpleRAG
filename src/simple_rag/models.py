@@ -1,10 +1,18 @@
+# -----------------------------------------------------------
+# Simple RAG Demo - Models
+#
+# (C) 2026 Juan-Francisco Reyes, Essen, Germany
+# Released under MIT License
+# email pacoreyes@protonmail.com
+# -----------------------------------------------------------
+
 from typing import Optional
 
 from pydantic import BaseModel
 
 
 class SourceRow(BaseModel):
-    """Raw row from the RagQuAS Parquet dataset (201 rows, 19 columns)."""
+    """Fila cruda del dataset Parquet de RagQuAS (201 filas, 19 columnas)."""
     topic: str
     answer: str
     question: str
@@ -27,7 +35,7 @@ class SourceRow(BaseModel):
 
 
 class DocumentRecord(BaseModel):
-    """One unique source document after exploding and deduplicating SourceRows."""
+    """Documento fuente único tras aplicar explode y deduplicar los SourceRows."""
     doc_id: str
     topic: str
     text: str
@@ -36,7 +44,7 @@ class DocumentRecord(BaseModel):
 
 
 class ChunkRecord(BaseModel):
-    """One chunk of a DocumentRecord, ready for Pinecone upsert."""
+    """Un chunk de un DocumentRecord, listo para el upsert en Pinecone."""
     chunk_id: str
     doc_id: str
     topic: str

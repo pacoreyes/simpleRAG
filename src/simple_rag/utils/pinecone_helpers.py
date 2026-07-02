@@ -1,6 +1,5 @@
 # -----------------------------------------------------------
-# Pinecone Vector Database Helpers
-# simple_rag — shared utilities
+# Simple RAG Demo - Pinecone Vector Database Helpers
 #
 # (C) 2026 Juan-Francisco Reyes, Essen, Germany
 # Released under MIT License
@@ -19,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 def get_pinecone_client(api_key: str) -> Pinecone:
-    """Returns an initialized Pinecone client."""
+    """Devuelve un cliente de Pinecone inicializado."""
     return Pinecone(api_key=api_key)
 
 
@@ -31,19 +30,19 @@ def ensure_index(
     cloud: str = "aws",
     region: str = "us-east-1",
 ) -> None:
-    """Creates the Pinecone index if it does not already exist."""
+    """Crea el índice de Pinecone si aún no existe."""
     existing = {idx.name for idx in pc.list_indexes()}
     if index_name not in existing:
-        log.info("Creating Pinecone index '%s' (%d dims, %s)", index_name, dimension, metric)
+        log.info("Creando índice de Pinecone '%s' (%d dims, %s)", index_name, dimension, metric)
         pc.create_index(
             name=index_name,
             dimension=dimension,
             metric=metric,
             spec=ServerlessSpec(cloud=cloud, region=region),
         )
-        log.info("Index '%s' created.", index_name)
+        log.info("Índice '%s' creado.", index_name)
     else:
-        log.info("Index '%s' already exists.", index_name)
+        log.info("El índice '%s' ya existe.", index_name)
 
 
 def upsert_vectors(
@@ -52,39 +51,40 @@ def upsert_vectors(
     vectors: List[dict],
     batch_size: int = 100,
 ) -> None:
-    """Upserts pre-built vector dicts into a Pinecone index in batches.
+    """Hace upsert de dicts de vectores ya construidos en un índice de Pinecone, por batches.
 
-    Each dict must follow the Pinecone upsert format:
+    Cada dict debe seguir el formato de upsert de Pinecone:
     ``{"id": str, "values": List[float], "metadata": dict}``.
-    The caller is responsible for building the dicts (including which metadata
-    fields to include), keeping domain knowledge out of this helper.
+    Quien llama esta función es responsable de construir los dicts (incluyendo
+    qué campos de metadata incluir), manteniendo el conocimiento de dominio
+    fuera de este helper.
 
     Args:
-        pc: Initialized Pinecone client.
-        index_name: Target index name.
-        vectors: List of vector dicts ready for upsert.
-        batch_size: Vectors per upsert call.
+        pc: Cliente de Pinecone inicializado.
+        index_name: Nombre del índice destino.
+        vectors: Lista de dicts de vectores listos para el upsert.
+        batch_size: Vectores por llamada de upsert.
     """
     index = pc.Index(index_name)
 
-    with tqdm(total=len(vectors), desc="Upserting vectors", unit="vec") as pbar:
+    with tqdm(total=len(vectors), desc="Haciendo upsert de vectores", unit="vec") as pbar:
         for start in range(0, len(vectors), batch_size):
             batch = vectors[start: start + batch_size]
             index.upsert(vectors=batch)
             pbar.update(len(batch))
 
-    log.info("Upserted %d vectors to index '%s'.", len(vectors), index_name)
+    log.info("Se hizo upsert de %d vectores al índice '%s'.", len(vectors), index_name)
 
 
 async def clear_index(pc: Pinecone, index_name: str) -> None:
-    """Deletes all vectors from a Pinecone index.
+    """Elimina todos los vectores de un índice de Pinecone.
 
-    Handles the case where the index is already empty or has no default
-    namespace (Pinecone serverless returns 404 in this case).
+    Maneja el caso en que el índice ya está vacío o no tiene un namespace
+    por defecto (Pinecone serverless devuelve 404 en ese caso).
 
     Args:
-        pc: Initialized Pinecone client.
-        index_name: Name of the Pinecone index to clear.
+        pc: Cliente de Pinecone inicializado.
+        index_name: Nombre del índice de Pinecone a vaciar.
     """
     from pinecone.exceptions import NotFoundException
 
@@ -105,27 +105,28 @@ async def generate_embeddings_pinecone_async(
     concurrency: int = 10,
     retry_count: int = 5,
     backoff_factor: float = 2.0,
-    description: str = "Generating embeddings",
+    description: str = "Generando embeddings",
 ) -> List[List[float]]:
-    """Generates embeddings using Pinecone Inference API with asyncio concurrency.
+    """Genera embeddings usando la Pinecone Inference API con concurrencia de asyncio.
 
-    Intended for the RAG query path where multiple queries may arrive concurrently.
-    Uses ``asyncio.to_thread`` to wrap the synchronous Pinecone SDK call.
+    Pensado para el flujo de consulta del RAG, donde pueden llegar varias
+    queries de forma concurrente. Usa ``asyncio.to_thread`` para envolver
+    la llamada síncrona del SDK de Pinecone.
 
     Args:
-        pc: Initialized Pinecone client.
-        texts: List of strings to embed.
-        model: Pinecone Inference model name (e.g. 'multilingual-e5-large').
-        input_type: Pinecone input type ('passage' or 'query').
-        batch_size: Number of texts per API request.
-        dimensions: Optional truncation dimension.
-        concurrency: Maximum simultaneous API requests.
-        retry_count: Maximum retry attempts per batch.
-        backoff_factor: Exponential backoff multiplier.
-        description: Progress bar label.
+        pc: Cliente de Pinecone inicializado.
+        texts: Lista de strings a embeber.
+        model: Nombre del modelo de Pinecone Inference (p. ej. 'multilingual-e5-large').
+        input_type: Tipo de input de Pinecone ('passage' o 'query').
+        batch_size: Cantidad de textos por request a la API.
+        dimensions: Dimensión de truncado opcional.
+        concurrency: Máximo de requests simultáneos a la API.
+        retry_count: Máximo de reintentos por batch.
+        backoff_factor: Multiplicador del backoff exponencial.
+        description: Etiqueta de la barra de progreso.
 
     Returns:
-        List of embedding vectors in the same order as input texts.
+        Lista de vectores de embedding en el mismo orden que los textos de entrada.
     """
     semaphore = asyncio.Semaphore(concurrency)
     all_results: List[Optional[List[float]]] = [None] * len(texts)
@@ -174,27 +175,27 @@ def generate_embeddings_pinecone(
     delay_seconds: float = 2.0,
     retry_count: int = 5,
     backoff_factor: float = 2.0,
-    description: str = "Generating embeddings",
+    description: str = "Generando embeddings",
 ) -> List[List[float]]:
-    """Generates embeddings using Pinecone Inference API with retry logic.
+    """Genera embeddings usando la Pinecone Inference API con lógica de reintentos.
 
-    Includes exponential backoff for rate-limit errors (HTTP 429) and optional
-    vector truncation.
+    Incluye backoff exponencial para errores de rate limit (HTTP 429) y
+    truncado de vector opcional.
 
     Args:
-        pc: Initialized Pinecone client.
-        texts: List of strings to embed.
-        model: Pinecone Inference model name (e.g. 'multilingual-e5-large').
-        input_type: Pinecone input type ('passage' or 'query').
-        batch_size: Number of texts per API request.
-        dimensions: Optional truncation dimension.
-        delay_seconds: Pause between successful batches to stay under TPM limits.
-        retry_count: Maximum retry attempts per batch.
-        backoff_factor: Exponential backoff multiplier.
-        description: Progress bar label.
+        pc: Cliente de Pinecone inicializado.
+        texts: Lista de strings a embeber.
+        model: Nombre del modelo de Pinecone Inference (p. ej. 'multilingual-e5-large').
+        input_type: Tipo de input de Pinecone ('passage' o 'query').
+        batch_size: Cantidad de textos por request a la API.
+        dimensions: Dimensión de truncado opcional.
+        delay_seconds: Pausa entre batches exitosos para mantenerse bajo los límites de TPM.
+        retry_count: Máximo de reintentos por batch.
+        backoff_factor: Multiplicador del backoff exponencial.
+        description: Etiqueta de la barra de progreso.
 
     Returns:
-        List of embedding vectors in the same order as input texts.
+        Lista de vectores de embedding en el mismo orden que los textos de entrada.
     """
     all_embeddings: List[List[float]] = []
 
@@ -231,12 +232,12 @@ def generate_embeddings_pinecone(
                     if is_rate_limit and attempt < retry_count:
                         wait_time = (backoff_factor**attempt) * 5
                         log.warning(
-                            "Pinecone rate limit (429). Retrying in %.1fs (attempt %d/%d).",
+                            "Rate limit de Pinecone (429). Reintentando en %.1fs (intento %d/%d).",
                             wait_time, attempt, retry_count,
                         )
                         time.sleep(wait_time)
                     else:
-                        log.error("Pinecone Inference failed: %s", e)
+                        log.error("Pinecone Inference falló: %s", e)
                         raise
 
     return all_embeddings
