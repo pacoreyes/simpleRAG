@@ -234,7 +234,7 @@ simple_rag.utils          →  simple_rag.settings   ✗  NUNCA
             se ha retrasado?"
                     │
                     ▼
-  RouterDecision(                    ← salida de Gemini (LLM)
+  RouterDecision(                    ← salida de UNA sola llamada a Gemini (LLM)
       topics       = ["reclamaciones"],
       filter_mode  = "exact",
       query_rewrite= "Cómo hacer un reclamo por retraso de vuelo",
@@ -243,20 +243,18 @@ simple_rag.utils          →  simple_rag.settings   ✗  NUNCA
                        reclamar un retraso de vuelo, cubierto por
                        'reclamaciones'."
   )
-                    │  confidence 1.00 ≥ 0.6 → no se fuerza a "none"
+                    │
                     ▼
-        ┌───────────┴────────────┐
-        ▼                        ▼
-  filtro de metadata       texto a embeber
-  {"topic":{"$eq":         "Cómo hacer un reclamo
-    "reclamaciones"}}       por retraso de vuelo"
-        └───────────┬────────────┘
-                     ▼
-     retrieve(query=texto_a_embeber, pinecone_filter=filtro)
-                     │
-                     ▼
-        chunks de Pinecone (filtrados por topic, rankeados
-        por similitud semántica contra la query reescrita)
+  confidence 1.00 ≥ 0.6 → se respeta filter_mode="exact" (SÍ se filtra)
+
+  filtro = {"topic": {"$eq": "reclamaciones"}}   +   query_rewrite = "Cómo hacer un reclamo por retraso de vuelo"
+                    │
+                    ▼
+       retrieve(pinecone_filter=filtro, query=query_rewrite)
+                    │
+                    ▼
+  chunks de Pinecone (filtrados por topic, rankeados
+  por similitud semántica contra la query reescrita)
 ```
 
 ## Internals de localización de la UI (Chainlit)
